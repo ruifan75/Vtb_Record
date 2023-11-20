@@ -3,6 +3,11 @@ package videoworker
 import (
 	"context"
 	"fmt"
+	"path/filepath"
+	"runtime/debug"
+	"strings"
+	"time"
+
 	"github.com/fzxiao233/Vtb_Record/config"
 	"github.com/fzxiao233/Vtb_Record/live/interfaces"
 	"github.com/fzxiao233/Vtb_Record/live/monitor"
@@ -10,10 +15,6 @@ import (
 	"github.com/fzxiao233/Vtb_Record/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/time/rate"
-	"path/filepath"
-	"runtime/debug"
-	"strings"
-	"time"
 )
 
 type VideoPathList []string
@@ -78,13 +79,14 @@ func (p *ProcessVideo) StartProcessVideo() {
 }
 
 func (p *ProcessVideo) prepareDownload() error {
-	var pathSlice []string
-	if !config.Config.EnableTS2MP4 {
-		pathSlice = []string{config.Config.DownloadDir, p.LiveStatus.Video.UsersConfig.Name,
-			p.liveStartTime.Format("20060102 150405")}
-	} else {
-		pathSlice = []string{config.Config.DownloadDir, p.LiveStatus.Video.UsersConfig.Name}
-	}
+	// var pathSlice []string
+	// if !config.Config.EnableTS2MP4 {
+	// 	pathSlice = []string{config.Config.DownloadDir, p.LiveStatus.Video.UsersConfig.Name,
+	// 		p.liveStartTime.Format("20060102 150405")}
+	// } else {
+	// 	pathSlice = []string{config.Config.DownloadDir, p.LiveStatus.Video.UsersConfig.Name}
+	// }
+	pathSlice := []string{config.Config.DownloadDir, p.LiveStatus.Video.UsersConfig.Name}
 	dirpath := strings.Join(pathSlice, "/")
 	ret, err := utils.MakeDir(dirpath)
 	p.getLogger().Debugf("Made directory: %s, ret: %s, err: %s", dirpath, ret, err)
@@ -128,6 +130,7 @@ func (p *ProcessVideo) startDownloadVideo() {
 		}()
 
 		var failRecord []time.Time
+		retryCounter := 0
 		for {
 			ctx := p.Monitor.GetCtx()
 			proxy, _ := ctx.GetProxy()
@@ -138,7 +141,7 @@ func (p *ProcessVideo) startDownloadVideo() {
 			if header != nil {
 				cookie = header["Cookie"]
 			}
-			aFilePath := down.DownloadVideo(p.LiveStatus.Video, proxy, cookie, filePath)
+			aFilePath := down.DownloadVideo(p.LiveStatus.Video, proxy, cookie, filePath, dirpath, retryCounter)
 
 			func() {
 				defer func() {
@@ -169,6 +172,7 @@ func (p *ProcessVideo) startDownloadVideo() {
 			if p.needStop {
 				break
 			}
+			retryCounter++
 		}
 	}()
 
@@ -237,7 +241,7 @@ func (p *ProcessVideo) isNewLive() bool {
 }
 
 func (p *ProcessVideo) getFullTitle() string {
-	title := fmt.Sprintf("【%s】", p.liveStartTime.Format("2006-01-02"))
+	title := fmt.Sprintf("[%s] ", p.liveStartTime.Format("20060102"))
 	if len(p.TitleHistory) == 0 {
 		p.TitleHistory = append(p.TitleHistory, LiveTitleHistoryEntry{
 			Title:     p.LiveStatus.Video.Title,
@@ -247,7 +251,7 @@ func (p *ProcessVideo) getFullTitle() string {
 	}
 
 	for _, titleHistory := range p.TitleHistory {
-		title += fmt.Sprintf("【%s】%s", titleHistory.StartTime.Format("15:04:05"), titleHistory.Title)
+		title += fmt.Sprintf("[%s] %s", titleHistory.StartTime.Format("150405"), titleHistory.Title)
 	}
 
 	return title

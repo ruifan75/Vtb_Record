@@ -17,7 +17,7 @@ type DownloaderStreamlink struct {
 	provbase.Downloader
 }
 
-func (d *DownloaderStreamlink) StartDownload(video *interfaces.VideoInfo, proxy string, cookie string, filepath string) error {
+func (d *DownloaderStreamlink) StartDownload(video *interfaces.VideoInfo, proxy string, cookie string, filepath string, dirpath string, retryCounter int) error {
 	var arg []string
 	arg = append(arg, []string{"--force", "-o", filepath}...)
 	if proxy != "" {

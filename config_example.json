@@ -6,13 +6,14 @@
   "EnableTS2MP4": true,
   "SRT": false,
   "VTT": true,
+  "YtdlpCookies": "firefox",
   "Module": [
     {
       "Name": "Youtube",
       "Enable": false,
       "EnableProxy": true,
       "Proxy": "127.0.0.1:10801",
-      "DownloadProvider": "streamlink",
+      "DownloadProvider": "ytdlp",
       "Users": [
         {
           "TargetId": "UCQ0UDLQCjY0rmuxCDE38FGg",

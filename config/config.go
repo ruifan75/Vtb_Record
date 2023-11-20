@@ -3,14 +3,15 @@ package config
 import (
 	"flag"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
-	"github.com/mitchellh/mapstructure"
-	"github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"log"
 	"os"
 	"reflect"
 	"strings"
+
+	"github.com/fsnotify/fsnotify"
+	"github.com/mitchellh/mapstructure"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 var Config *MainConfig
@@ -46,6 +47,7 @@ type MainConfig struct {
 	Module           []ModuleConfig
 	ExpressPort      string
 	EnableTS2MP4     bool
+	YtdlpCookies     string
 	ExtraConfig      map[string]interface{}
 }
 

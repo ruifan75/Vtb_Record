@@ -3,34 +3,36 @@ package utils
 import (
 	"bytes"
 	"io"
-	"log"
+	"io/ioutil"
 	"os"
 	"os/exec"
 )
 
-func ExecShell(name string, arg ...string) string {
-	var stdoutBuf, stderrBuf bytes.Buffer
+func ExecShell(name string, arg ...string) error {
+	// var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
 	co := exec.Command(name, arg...)
 	stdoutIn, _ := co.StdoutPipe()
 	stderrIn, _ := co.StderrPipe()
-	var errStdout, errStderr error
-	stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
+	// var errStdout error
+	// var errStderr error
+	// stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
 	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
 	_ = co.Start()
 	go func() {
-		_, errStdout = io.Copy(stdout, stdoutIn)
+		_, _ = io.Copy(ioutil.Discard, stdoutIn)
 	}()
 	go func() {
-		_, errStderr = io.Copy(stderr, stderrIn)
+		_, _ = io.Copy(stderr, stderrIn)
 	}()
-	if errStderr != nil {
-		log.Printf("%v", errStderr)
-	}
-	if errStdout != nil {
-		log.Printf("%v", errStdout)
-	}
-	_ = co.Wait()
-	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
+	// if errStderr != nil {
+	// 	log.Printf("%v", errStderr)
+	// }
+	// if errStdout != nil {
+	// 	log.Printf("%v", errStdout)
+	// }
+	err := co.Wait()
+	// outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
 	//println(outStr + errStr)
-	return outStr + errStr
+	return err
 }
