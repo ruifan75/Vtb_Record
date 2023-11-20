@@ -2,12 +2,13 @@ package youtube
 
 import (
 	"fmt"
+	"regexp"
+
 	"github.com/fzxiao233/Vtb_Record/config"
 	"github.com/fzxiao233/Vtb_Record/live/interfaces"
 	"github.com/fzxiao233/Vtb_Record/live/monitor/base"
 	. "github.com/fzxiao233/Vtb_Record/utils"
 	"github.com/tidwall/gjson"
-	"regexp"
 )
 
 type yfConfig struct {
@@ -22,30 +23,26 @@ type Youtube struct {
 }
 
 func (y *Youtube) getVideoInfo(ctx *base.MonitorCtx, baseHost string, channelId string) error {
-	url := baseHost + "/channel/" + channelId + "/live"
+	url := baseHost + "/channel/" + channelId + "/streams"
 	htmlBody, err := ctx.HttpGet(url, map[string]string{})
 	if err != nil {
 		return err
 	}
-	re, _ := regexp.Compile(`var\sytInitialPlayerResponse\s=\s*([^\n]+?});`)
+	re, _ := regexp.Compile(`var\sytInitialData\s=\s*([^\n]+?});`)
 	result := re.FindSubmatch(htmlBody)
 	if len(result) < 2 {
 		return fmt.Errorf("youtube cannot find js_data")
 	}
 	jsonYtConfig := result[1]
-	videoDetails := gjson.GetBytes(jsonYtConfig, "videoDetails")
-	if !videoDetails.Exists() {
-		return fmt.Errorf("youtube cannot find videoDetails")
+	contents := gjson.GetBytes(jsonYtConfig, `contents.twoColumnBrowseResultsRenderer.tabs.#(tabRenderer.title="Live").tabRenderer.content.richGridRenderer.contents`)
+	firstLive := contents.Get(`#(richItemRenderer.content.videoRenderer.thumbnailOverlays.0.thumbnailOverlayTimeStatusRenderer.style="LIVE").richItemRenderer.content.videoRenderer`)
+	if !firstLive.Exists() {
+		return fmt.Errorf("no live exists")
 	}
-	IsLive := videoDetails.Get("isLive").Bool()
-	if !IsLive {
-		return err
-	} else {
-		y.IsLive = true
-		y.Title = videoDetails.Get("title").String()
-		y.Target = "https://www.youtube.com/watch?v=" + videoDetails.Get("videoId").String()
-		return nil
-	}
+	y.IsLive = true
+	y.Title = firstLive.Get("title.runs.0.text").String()
+	y.Target = "https://www.youtube.com/watch?v=" + firstLive.Get("videoId").String()
+	return nil
 }
 
 func (y *Youtube) CreateVideo(usersConfig config.UsersConfig) *interfaces.VideoInfo {
